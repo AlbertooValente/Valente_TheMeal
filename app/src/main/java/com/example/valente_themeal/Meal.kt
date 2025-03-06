@@ -13,7 +13,6 @@ data class Meal(
     val strSource: String?,
     val strImageSource: String?,
 
-    // Ingredienti e misure (fino a 20)
     val strIngredient1: String?,
     val strIngredient2: String?,
     val strIngredient3: String?,
@@ -55,4 +54,8 @@ data class Meal(
     val strMeasure18: String?,
     val strMeasure19: String?,
     val strMeasure20: String?
+)
+
+data class MealsResponse(
+    val meals: List<Meal>?
 )

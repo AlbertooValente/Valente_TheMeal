@@ -23,7 +23,7 @@ interface MealApiService {
 
     //ricetta casuale
     @GET("random.php")
-    suspend fun getRandomMeal(): Meal
+    suspend fun getRandomMeal(): MealsResponse
 }
 
 
