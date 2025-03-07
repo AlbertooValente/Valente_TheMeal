@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -37,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -79,15 +81,20 @@ fun Nav(){
     ) {
         NavHost(navController = navController, startDestination = "home") {
             composable("home") { Home(apiService, navController) }
-            composable("ricercaRicette/{nomeRicetta}") { backStackEntry ->
-                val nomeRicetta = backStackEntry.arguments?.getString("mealName") ?: ""
+            composable("ricercaRicette/{nomeRicetta}"){ navbackStackEntry ->
+                val nomeRicetta = navbackStackEntry.arguments?.getString("nomeRicetta") ?: ""
 
                 RicercaRicetta(apiService, nomeRicetta, navController)
             }
-            composable("ricetta/{idRicetta}") { backStackEntry ->
-                val idRicetta = backStackEntry.arguments?.getString("mealName") ?: ""
+            composable("ricetta/{idRicetta}"){ navbackStackEntry ->
+                val idRicetta = navbackStackEntry.arguments?.getString("idRicetta") ?: ""
 
                 RicercaRicettaFromId(apiService, idRicetta, navController)
+            }
+            composable("categoria/{nomeCategoria}"){ navBackStackEntry ->
+                val nomeCategoria = navBackStackEntry.arguments?.getString("nomeCategoria") ?: ""
+
+                RicercaCategoria(apiService, nomeCategoria, navController)
             }
             composable("random") { Random(apiService, navController) }
         }
@@ -140,7 +147,7 @@ fun Home(apiService: MealApiService, navController: NavHostController){
                 modifier = Modifier.fillMaxWidth()
             ){
                 Text(
-                    text = "Cerca piatto",
+                    text = "Cerca ricetta",
                     fontSize = 20.sp,
                     color = TestoPrincipale
                 )
@@ -215,7 +222,7 @@ fun Home(apiService: MealApiService, navController: NavHostController){
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         items(categories!!.categories) { category ->
-                            CategoryItem(category = category, navController)
+                            CategoryItem(categoria = category, navController)
                         }
                     }
                 }
@@ -275,7 +282,7 @@ fun RicercaRicetta(apiService: MealApiService, nomeRicetta: String, navControlle
         isError = false
 
         try {
-            meals = apiService.searchMeal(nomeRicetta).meals
+            meals = apiService.searchMeals(nomeRicetta).meals
             isError = meals.isNullOrEmpty()
         } catch (e: Exception) {
             isError = true
@@ -284,33 +291,76 @@ fun RicercaRicetta(apiService: MealApiService, nomeRicetta: String, navControlle
         isLoading = false
     }
 
-    if(isLoading){
-        Text("Caricamento...", fontSize = 18.sp, color = TestoSecondario)
-    }
-    else if(isError){
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp, top = 30.dp)
-                .verticalScroll(scrollState)
-        ){
-            Button(
-                onClick = { navController.popBackStack() },
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(Verde)
-            ) {
-                Text(text = "⬅ Home", fontSize = 16.sp, color = Bianco)
-            }
-            Spacer(modifier = Modifier.height(20.dp))
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = 30.dp)
+            .padding(horizontal = 16.dp)
+            .verticalScroll(scrollState)
+    ){
+        Button(
+            onClick = { navController.popBackStack() },
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(Bianco)
+        ) {
+            Text(text = "← Back", fontSize = 16.sp, color = TestoSecondario)
+        }
+        Spacer(modifier = Modifier.height(20.dp))
+
+        if(isLoading){
+            Text("Caricamento...", fontSize = 18.sp, color = TestoSecondario)
+        }
+        else if(isError){
             Text("Nessuna ricetta trovata per '$nomeRicetta'", fontSize = 18.sp, color = Color.Red)
         }
+        else{
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ){
+                meals?.forEach{ meal ->
+                    MealItem(meal, navController)
+                }
+            }
+        }
     }
-    else{
-        Column(
-            modifier = Modifier.fillMaxWidth()
-        ){
-            meals?.forEach{ meal ->
-                MealItem(meal, navController)
+}
+
+@Composable
+fun RicercaCategoria(apiService: MealApiService, categoria: String, navController: NavHostController){
+    val scrollState = rememberScrollState()
+    var meals by remember { mutableStateOf<List<Meal>?>(null) }
+
+    LaunchedEffect(categoria) {
+        meals = apiService.getMealsByCategory(categoria).meals
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = 30.dp)
+            .padding(horizontal = 16.dp)
+            .verticalScroll(scrollState)
+    ) {
+        Button(
+            onClick = { navController.popBackStack() },
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(Bianco)
+        ) {
+            Text(text = "← Back", fontSize = 16.sp, color = TestoSecondario)
+        }
+        Spacer(modifier = Modifier.height(20.dp))
+
+        if(meals == null){
+            Text("Caricamento...", fontSize = 18.sp, color = TestoSecondario)
+        }
+        else{
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ){
+                meals?.forEach{ meal ->
+                    MealItem(meal, navController)
+                }
             }
         }
     }
@@ -335,12 +385,13 @@ fun RicercaRicettaFromId(apiService: MealApiService, idRicetta: String, navContr
 
 
 @Composable
-fun CategoryItem(category: Category, navController: NavHostController){
+fun CategoryItem(categoria: Category, navController: NavHostController){
     Button(
-        onClick = { },
+        onClick = { navController.navigate("categoria/${categoria.strCategory}") },
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 5.dp),
+
         shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.buttonColors(containerColor = Verde)
     ) {
@@ -349,14 +400,15 @@ fun CategoryItem(category: Category, navController: NavHostController){
             verticalAlignment = Alignment.CenterVertically
         ) {
             AsyncImage(
-                model = category.strCategoryThumb,
-                contentDescription = category.strCategory,
+                model = categoria.strCategoryThumb,
+                contentDescription = categoria.strCategory,
                 modifier = Modifier
-                    .size(50.dp)
+                    .size(75.dp)
+                    .clip(RoundedCornerShape(12.dp))
             )
             Spacer(modifier = Modifier.width(10.dp))
             Text(
-                text = category.strCategory,
+                text = categoria.strCategory,
                 fontSize = 18.sp,
                 color = Color.White
             )
@@ -370,24 +422,31 @@ fun MealItem(meal: Meal, navController: NavHostController){
         onClick = { navController.navigate("ricetta/${meal.idMeal}") },
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 5.dp),
+            .padding(horizontal = 8.dp, vertical = 5.dp),
+
         shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.buttonColors(containerColor = Verde)
     ) {
         Row(
-            modifier = Modifier.padding(10.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Start
         ) {
             AsyncImage(
                 model = meal.strMealThumb,
                 contentDescription = meal.strMeal,
-                modifier = Modifier.size(50.dp)
+                modifier = Modifier
+                    .size(75.dp)
+                    .clip(RoundedCornerShape(12.dp))
             )
             Spacer(modifier = Modifier.width(10.dp))
             Text(
                 text = meal.strMeal,
                 fontSize = 18.sp,
-                color = Color.White
+                color = Bianco,
+                textAlign = TextAlign.Center
             )
         }
     }
@@ -398,7 +457,8 @@ fun MostraRicetta(meal: Meal, navController: NavHostController, scrollState: Scr
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp, top = 30.dp)
+            .padding(top = 30.dp)
+            .padding(horizontal = 16.dp)
             .verticalScroll(scrollState)
     ){
         Button(
@@ -406,13 +466,13 @@ fun MostraRicetta(meal: Meal, navController: NavHostController, scrollState: Scr
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(Verde)
         ) {
-            Text(text = "⬅ Home", fontSize = 16.sp, color = Bianco)
+            Text(text = "← Back", fontSize = 16.sp, color = Bianco)
         }
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(top = 16.dp)
                 .background(Bianco, shape = RoundedCornerShape(12.dp)),
 
             horizontalAlignment = Alignment.CenterHorizontally
@@ -423,14 +483,18 @@ fun MostraRicetta(meal: Meal, navController: NavHostController, scrollState: Scr
                 fontWeight = FontWeight.Bold,
                 color = TestoPrincipale,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 20.dp)
+                modifier = Modifier
+                    .padding(top = 20.dp)
+                    .padding(horizontal = 10.dp)
             )
             Spacer(modifier = Modifier.height(10.dp))
 
             AsyncImage(
                 model = meal.strMealThumb,
                 contentDescription = meal.strMeal,
-                modifier = Modifier.size(200.dp)
+                modifier = Modifier
+                    .size(200.dp)
+                    .clip(RoundedCornerShape(24.dp))
             )
             Spacer(modifier = Modifier.height(10.dp))
 

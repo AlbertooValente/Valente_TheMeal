@@ -19,7 +19,7 @@ interface MealApiService {
 
     //pasti per nome
     @GET("search.php")
-    suspend fun searchMeal(@Query("s") mealName: String): MealsResponse
+    suspend fun searchMeals(@Query("s") mealName: String): MealsResponse
 
     //ricetta casuale
     @GET("random.php")
