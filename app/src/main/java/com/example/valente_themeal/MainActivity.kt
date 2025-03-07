@@ -9,7 +9,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -81,21 +80,31 @@ fun Nav(){
     ) {
         NavHost(navController = navController, startDestination = "home") {
             composable("home") { Home(apiService, navController) }
+
             composable("ricercaRicette/{nomeRicetta}"){ navbackStackEntry ->
                 val nomeRicetta = navbackStackEntry.arguments?.getString("nomeRicetta") ?: ""
 
                 RicercaRicetta(apiService, nomeRicetta, navController)
             }
+
             composable("ricetta/{idRicetta}"){ navbackStackEntry ->
                 val idRicetta = navbackStackEntry.arguments?.getString("idRicetta") ?: ""
 
-                RicercaRicettaFromId(apiService, idRicetta, navController)
+                RicettaFromId(apiService, idRicetta, navController)
             }
+
             composable("categoria/{nomeCategoria}"){ navBackStackEntry ->
                 val nomeCategoria = navBackStackEntry.arguments?.getString("nomeCategoria") ?: ""
 
-                RicercaCategoria(apiService, nomeCategoria, navController)
+                RicettaCategoriaIngrediente(apiService, nomeCategoria, tipo = true, navController)
             }
+
+            composable("ingrediente/{nomeIngrediente}"){ navBackStackEntry ->
+                val nomeIngrediente = navBackStackEntry.arguments?.getString("nomeIngrediente") ?: ""
+
+                RicettaCategoriaIngrediente(apiService, nomeIngrediente, tipo = false, navController)
+            }
+
             composable("random") { Random(apiService, navController) }
         }
     }
@@ -104,9 +113,11 @@ fun Nav(){
 @Composable
 fun Home(apiService: MealApiService, navController: NavHostController){
     var categories by remember { mutableStateOf<ListaCategory?>(null) }
+    var ingredienti by remember { mutableStateOf<IngredientResponse?>(null) }
 
     LaunchedEffect(Unit) {
         categories = apiService.getCategories()
+        ingredienti = apiService.getIngredients()
     }
 
     val scrollState = rememberScrollState()
@@ -115,7 +126,7 @@ fun Home(apiService: MealApiService, navController: NavHostController){
     Column (
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 15.dp)
+            .padding(bottom = 20.dp)
             .verticalScroll(scrollState),
 
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -196,6 +207,7 @@ fun Home(apiService: MealApiService, navController: NavHostController){
             }
         }
         Spacer(modifier = Modifier.height(20.dp))
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -207,7 +219,7 @@ fun Home(apiService: MealApiService, navController: NavHostController){
                 modifier = Modifier.fillMaxWidth()
             ){
                 Text(
-                    text = "Categorie",
+                    text = "Ricerca per categoria",
                     fontSize = 20.sp,
                     color = TestoPrincipale
                 )
@@ -222,13 +234,48 @@ fun Home(apiService: MealApiService, navController: NavHostController){
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         items(categories!!.categories) { category ->
-                            CategoryItem(categoria = category, navController)
+                            CategoryItem(category, navController)
                         }
                     }
                 }
             }
         }
         Spacer(modifier = Modifier.height(20.dp))
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp)
+                .background(Bianco, shape = RoundedCornerShape(12.dp))
+                .padding(16.dp)
+        ){
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ){
+                Text(
+                    text = "Ricerca per ingrediente",
+                    fontSize = 20.sp,
+                    color = TestoPrincipale
+                )
+                Spacer(Modifier.height(20.dp))
+
+                if (ingredienti == null) {
+                    Text("Caricamento...", modifier = Modifier.padding(18.dp), color = TestoSecondario)
+                } else {
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        items(ingredienti!!.meals) { ingrediente ->
+                            IngredientItem(ingrediente, navController)
+                        }
+                    }
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(20.dp))
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -315,7 +362,10 @@ fun RicercaRicetta(apiService: MealApiService, nomeRicetta: String, navControlle
         }
         else{
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 30.dp),
+
                 horizontalAlignment = Alignment.CenterHorizontally
             ){
                 meals?.forEach{ meal ->
@@ -327,12 +377,17 @@ fun RicercaRicetta(apiService: MealApiService, nomeRicetta: String, navControlle
 }
 
 @Composable
-fun RicercaCategoria(apiService: MealApiService, categoria: String, navController: NavHostController){
+fun RicettaCategoriaIngrediente(apiService: MealApiService, parametro: String, tipo: Boolean, navController: NavHostController){
     val scrollState = rememberScrollState()
     var meals by remember { mutableStateOf<List<Meal>?>(null) }
 
-    LaunchedEffect(categoria) {
-        meals = apiService.getMealsByCategory(categoria).meals
+    LaunchedEffect(parametro) {
+        if(tipo){
+            meals = apiService.getMealsByCategory(parametro).meals
+        }
+        else{
+            meals = apiService.getMealsByIngredient(parametro).meals
+        }
     }
 
     Column(
@@ -356,7 +411,11 @@ fun RicercaCategoria(apiService: MealApiService, categoria: String, navControlle
         }
         else{
             Column(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 30.dp),
+
+                horizontalAlignment = Alignment.CenterHorizontally
             ){
                 meals?.forEach{ meal ->
                     MealItem(meal, navController)
@@ -367,7 +426,7 @@ fun RicercaCategoria(apiService: MealApiService, categoria: String, navControlle
 }
 
 @Composable
-fun RicercaRicettaFromId(apiService: MealApiService, idRicetta: String, navController: NavHostController){
+fun RicettaFromId(apiService: MealApiService, idRicetta: String, navController: NavHostController){
     val scrollState = rememberScrollState()
     var meal by remember { mutableStateOf<Meal?>(null) }
 
@@ -417,6 +476,26 @@ fun CategoryItem(categoria: Category, navController: NavHostController){
 }
 
 @Composable
+fun IngredientItem(ingrediente: Ingredient, navController: NavHostController){
+    Button(
+        onClick = { navController.navigate("ingrediente/${ingrediente.strIngredient}") },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 5.dp),
+
+        shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = Verde)
+    ) {
+        Text(
+            text = ingrediente.strIngredient,
+            fontSize = 18.sp,
+            color = Color.White,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
 fun MealItem(meal: Meal, navController: NavHostController){
     Button(
         onClick = { navController.navigate("ricetta/${meal.idMeal}") },
@@ -457,7 +536,7 @@ fun MostraRicetta(meal: Meal, navController: NavHostController, scrollState: Scr
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 30.dp)
+            .padding(top = 30.dp, bottom = 30.dp)
             .padding(horizontal = 16.dp)
             .verticalScroll(scrollState)
     ){
@@ -563,7 +642,7 @@ fun ListaIngredienti(meal: Meal){
     ) {
         ingredienti.forEach { (ingrediente, misura) ->
             Text(
-                text = "- $ingrediente: ${misura ?: "q.b."}",   //se la misura è vuota stampa q.b. (quanto basta)
+                text = "- $ingrediente: ${misura ?: ""}",
                 fontSize = 16.sp,
                 color = TestoSecondario
             )

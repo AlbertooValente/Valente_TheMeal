@@ -24,6 +24,14 @@ interface MealApiService {
     //ricetta casuale
     @GET("random.php")
     suspend fun getRandomMeal(): MealsResponse
+
+    //lista ingredienti
+    @GET("list.php?i")
+    suspend fun getIngredients(): IngredientResponse
+
+    //lista dei pasti con un ingrediente
+    @GET("filter.php")
+    suspend fun getMealsByIngredient(@Query("i") ingredient: String): MealsResponse
 }
 
 
