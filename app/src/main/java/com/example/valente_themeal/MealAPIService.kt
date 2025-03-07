@@ -11,15 +11,15 @@ interface MealApiService {
 
     //lista dei pasti di una categoria specifica
     @GET("filter.php")
-    suspend fun getMealsByCategory(@Query("c") category: String): List<Meal>
+    suspend fun getMealsByCategory(@Query("c") category: String): MealsResponse
 
     //dettagli di un pasto tramite ID
     @GET("lookup.php")
-    suspend fun getMeal(@Query("i") mealId: String): Meal
+    suspend fun getMeal(@Query("i") mealId: String): MealsResponse
 
     //pasti per nome
     @GET("search.php")
-    suspend fun searchMeals(@Query("s") mealName: String): List<Meal>
+    suspend fun searchMeal(@Query("s") mealName: String): MealsResponse
 
     //ricetta casuale
     @GET("random.php")

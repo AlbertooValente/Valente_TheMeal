@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -62,11 +63,10 @@ class MainActivity : ComponentActivity() {
 }
 
 //palette colori
-val ColoreButton = Color(0xFF4CAF50)     //pulsante
+val Verde = Color(0xFF4CAF50)     //pulsante
 val Bianco = Color(0xFFF2F2F2)     //sfondo
 val TestoPrincipale = Color(0xFF212121)     //testo principale
 val TestoSecondario = Color(0xFF757575)     //testo secondario
-val Blu = Color(0xFF03A9F4)  //linea cursore
 
 @Composable
 fun Nav(){
@@ -79,6 +79,16 @@ fun Nav(){
     ) {
         NavHost(navController = navController, startDestination = "home") {
             composable("home") { Home(apiService, navController) }
+            composable("ricercaRicette/{nomeRicetta}") { backStackEntry ->
+                val nomeRicetta = backStackEntry.arguments?.getString("mealName") ?: ""
+
+                RicercaRicetta(apiService, nomeRicetta, navController)
+            }
+            composable("ricetta/{idRicetta}") { backStackEntry ->
+                val idRicetta = backStackEntry.arguments?.getString("mealName") ?: ""
+
+                RicercaRicettaFromId(apiService, idRicetta, navController)
+            }
             composable("random") { Random(apiService, navController) }
         }
     }
@@ -113,7 +123,7 @@ fun Home(apiService: MealApiService, navController: NavHostController){
                 text = "Get Your Meal",
                 fontSize = 36.sp,
                 fontWeight = FontWeight.Bold,
-                color = ColoreButton,
+                color = Verde,
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.align(Alignment.Center)
             )
@@ -147,21 +157,27 @@ fun Home(apiService: MealApiService, navController: NavHostController){
                         onValueChange = { textInput = it },
                         label = { Text("Inserisci nome piatto") },
                         modifier = Modifier.weight(1f),
+
                         colors = TextFieldDefaults.colors(
-                            TestoPrincipale,    //colore testo quando l'utente sta interagendo (focus)
-                            TestoPrincipale,    //colore testo quando l'utente non sta interagendo (unfocused)
-                            Blu,         //colore bordo inferiore quando è in focus
-                            TestoSecondario,    //colore bordo inferiore quando non è in focus
-                            Blu,         //colore linea del cursore
-                            Color.White         //colore di sfondo
+                            focusedTextColor = TestoPrincipale,     //colore testo quando l'utente sta interagendo
+                            unfocusedTextColor = TestoPrincipale,    //colore testo quando l'utente non sta interagendo
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            cursorColor = Verde,
+                            focusedLabelColor = Verde,
+                            focusedIndicatorColor = Verde
                         )
                     )
 
                     Button(
-                        onClick = {},
+                        onClick = {
+                            if (textInput.isNotBlank()) {
+                                navController.navigate("ricercaRicette/${textInput}")
+                            }
+                        },
                         modifier = Modifier.align(Alignment.CenterVertically),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(ColoreButton)
+                        colors = ButtonDefaults.buttonColors(Verde)
                     ) {
                         Text(
                             text = "🔍",
@@ -218,7 +234,7 @@ fun Home(apiService: MealApiService, navController: NavHostController){
             Button(
                 onClick = { navController.navigate("random") },
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(ColoreButton)
+                colors = ButtonDefaults.buttonColors(Verde)
             ) {
                 Text(
                     text = "Ricetta random",
@@ -231,6 +247,94 @@ fun Home(apiService: MealApiService, navController: NavHostController){
 }
 
 @Composable
+fun Random(apiService: MealApiService, navController: NavHostController){
+    val scrollState = rememberScrollState()
+    var meal by remember { mutableStateOf<Meal?>(null) }
+
+    LaunchedEffect(Unit) {
+        meal = apiService.getRandomMeal().meals?.firstOrNull()
+    }
+
+    if(meal == null){
+        Text("Caricamento...", fontSize = 18.sp, color = TestoSecondario)
+    }
+    else{
+        MostraRicetta(meal!!, navController, scrollState)
+    }
+}
+
+@Composable
+fun RicercaRicetta(apiService: MealApiService, nomeRicetta: String, navController: NavHostController) {
+    val scrollState = rememberScrollState()
+    var meals by remember { mutableStateOf<List<Meal>?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+    var isError by remember { mutableStateOf(false) }
+
+    LaunchedEffect(nomeRicetta) {
+        isLoading = true
+        isError = false
+
+        try {
+            meals = apiService.searchMeal(nomeRicetta).meals
+            isError = meals.isNullOrEmpty()
+        } catch (e: Exception) {
+            isError = true
+        }
+
+        isLoading = false
+    }
+
+    if(isLoading){
+        Text("Caricamento...", fontSize = 18.sp, color = TestoSecondario)
+    }
+    else if(isError){
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp, top = 30.dp)
+                .verticalScroll(scrollState)
+        ){
+            Button(
+                onClick = { navController.popBackStack() },
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(Verde)
+            ) {
+                Text(text = "⬅ Home", fontSize = 16.sp, color = Bianco)
+            }
+            Spacer(modifier = Modifier.height(20.dp))
+            Text("Nessuna ricetta trovata per '$nomeRicetta'", fontSize = 18.sp, color = Color.Red)
+        }
+    }
+    else{
+        Column(
+            modifier = Modifier.fillMaxWidth()
+        ){
+            meals?.forEach{ meal ->
+                MealItem(meal, navController)
+            }
+        }
+    }
+}
+
+@Composable
+fun RicercaRicettaFromId(apiService: MealApiService, idRicetta: String, navController: NavHostController){
+    val scrollState = rememberScrollState()
+    var meal by remember { mutableStateOf<Meal?>(null) }
+
+    LaunchedEffect(Unit) {
+        meal = apiService.getMeal(idRicetta).meals?.firstOrNull()
+    }
+
+    if(meal == null){
+        Text("Caricamento...", fontSize = 18.sp, color = TestoSecondario)
+    }
+    else{
+        MostraRicetta(meal!!, navController, scrollState)
+    }
+}
+
+
+@Composable
 fun CategoryItem(category: Category, navController: NavHostController){
     Button(
         onClick = { },
@@ -238,7 +342,7 @@ fun CategoryItem(category: Category, navController: NavHostController){
             .fillMaxWidth()
             .padding(vertical = 5.dp),
         shape = RoundedCornerShape(12.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = ColoreButton)
+        colors = ButtonDefaults.buttonColors(containerColor = Verde)
     ) {
         Row(
             modifier = Modifier.padding(10.dp),
@@ -261,15 +365,36 @@ fun CategoryItem(category: Category, navController: NavHostController){
 }
 
 @Composable
-fun Random(apiService: MealApiService, navController: NavHostController){
-    val scrollState = rememberScrollState()
-    var meal by remember { mutableStateOf<Meal?>(null) }
-
-    LaunchedEffect(Unit) {
-        var response = apiService.getRandomMeal()
-        meal = response.meals?.firstOrNull()
+fun MealItem(meal: Meal, navController: NavHostController){
+    Button(
+        onClick = { navController.navigate("ricetta/${meal.idMeal}") },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 5.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = Verde)
+    ) {
+        Row(
+            modifier = Modifier.padding(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AsyncImage(
+                model = meal.strMealThumb,
+                contentDescription = meal.strMeal,
+                modifier = Modifier.size(50.dp)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = meal.strMeal,
+                fontSize = 18.sp,
+                color = Color.White
+            )
+        }
     }
+}
 
+@Composable
+fun MostraRicetta(meal: Meal, navController: NavHostController, scrollState: ScrollState){
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -279,29 +404,19 @@ fun Random(apiService: MealApiService, navController: NavHostController){
         Button(
             onClick = { navController.popBackStack() },
             shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(ColoreButton)
+            colors = ButtonDefaults.buttonColors(Verde)
         ) {
             Text(text = "⬅ Home", fontSize = 16.sp, color = Bianco)
         }
 
-        MostraRicetta(meal)
-    }
-}
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+                .background(Bianco, shape = RoundedCornerShape(12.dp)),
 
-@Composable
-fun MostraRicetta(meal: Meal?){
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .background(Bianco, shape = RoundedCornerShape(12.dp)),
-
-        horizontalAlignment = Alignment.CenterHorizontally
-    ){
-        if(meal == null){
-            Text("Caricamento...", fontSize = 18.sp, color = TestoSecondario)
-        }
-        else{
+            horizontalAlignment = Alignment.CenterHorizontally
+        ){
             Text(
                 text = meal.strMeal,
                 fontSize = 24.sp,
@@ -391,6 +506,7 @@ fun ListaIngredienti(meal: Meal){
         }
     }
 }
+
 
 @Preview(showBackground = true)
 @Composable
