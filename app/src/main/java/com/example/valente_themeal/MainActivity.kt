@@ -37,6 +37,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -74,7 +75,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             Valente_TheMealTheme {
-                AppPreview()
+                Nav()
             }
         }
     }
@@ -101,21 +102,36 @@ fun Nav(){
             if(currentRoute == "home" || currentRoute == "cerca"){
                 NavigationBar(
                     containerColor = Bianco,
-                    tonalElevation = 8.dp,
+                    tonalElevation = 0.dp,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(64.dp)
-                        .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
-                        .shadow(
-                            elevation = 16.dp,
-                            spotColor = Color.Gray.copy(alpha = 0.2f),
-                            shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
-                        )
+                        .height(75.dp)
                 ) {
                     //elemento navbar "Home"
                     NavigationBarItem(
-                        icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                        label = { Text("Home") },
+                        icon = {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.Home,
+                                    contentDescription = "Home",
+                                    tint = if (currentRoute == "home") Verde else TestoSecondario,
+                                    modifier = Modifier.size(26.dp)
+                                )
+                            }
+                        },
+
+                        label = {
+                            Text(
+                                "Home",
+                                color = if (currentRoute == "home") Verde else TestoSecondario,
+                                fontWeight = if (currentRoute == "home") FontWeight.Bold else FontWeight.Normal,
+                                fontSize = 12.sp
+                            )
+                        },
+
                         selected = currentRoute == "home",
                         onClick = {
                             if (currentRoute != "home") {
@@ -123,13 +139,40 @@ fun Nav(){
                                     popUpTo("home") { inclusive = true }
                                 }
                             }
-                        }
+                        },
+
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = Verde,
+                            unselectedIconColor = TestoSecondario,
+                            indicatorColor = if (currentRoute == "home") Verde.copy(alpha = 0.1f) else Bianco
+                        )
                     )
 
                     //elemento navbar "Cerca"
                     NavigationBarItem(
-                        icon = { Icon(Icons.Default.Search, contentDescription = "Cerca") },
-                        label = { Text("Cerca") },
+                        icon = {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.Search,
+                                    contentDescription = "Cerca",
+                                    tint = if (currentRoute == "cerca") Verde else TestoSecondario,
+                                    modifier = Modifier.size(26.dp)
+                                )
+                            }
+                        },
+
+                        label = {
+                            Text(
+                                "Cerca",
+                                color = if (currentRoute == "cerca") Verde else TestoSecondario,
+                                fontWeight = if (currentRoute == "cerca") FontWeight.Bold else FontWeight.Normal,
+                                fontSize = 12.sp
+                            )
+                        },
+
                         selected = currentRoute == "cerca",
                         onClick = {
                             if (currentRoute != "cerca") {
@@ -137,7 +180,13 @@ fun Nav(){
                                     popUpTo("cerca") { inclusive = true }
                                 }
                             }
-                        }
+                        },
+
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = Verde,
+                            unselectedIconColor = TestoSecondario,
+                            indicatorColor = if (currentRoute == "cerca") Verde.copy(alpha = 0.1f) else Bianco
+                        )
                     )
                 }
             }
@@ -734,6 +783,7 @@ fun RandomMealItem(meal: Meal, navController: NavHostController) {
         modifier = Modifier
             .width(200.dp)
             .padding(4.dp),
+
         colors = CardDefaults.cardColors(containerColor = BgCard),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         shape = RoundedCornerShape(12.dp)
@@ -742,6 +792,7 @@ fun RandomMealItem(meal: Meal, navController: NavHostController) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp),
+
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             AsyncImage(
@@ -752,6 +803,7 @@ fun RandomMealItem(meal: Meal, navController: NavHostController) {
                     .clip(RoundedCornerShape(12.dp))
             )
             Spacer(modifier = Modifier.height(8.dp))
+
             Text(
                 text = meal.strMeal,
                 fontSize = 16.sp,
@@ -762,6 +814,7 @@ fun RandomMealItem(meal: Meal, navController: NavHostController) {
                 modifier = Modifier.height(48.dp)
             )
             Spacer(modifier = Modifier.height(4.dp))
+
             Button(
                 onClick = { navController.navigate("ricetta/${meal.idMeal}") },
                 colors = ButtonDefaults.buttonColors(containerColor = Verde),
@@ -784,6 +837,7 @@ fun MealItem(meal: Meal, navController: NavHostController){
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
+
         colors = CardDefaults.cardColors(containerColor = BgCard),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         shape = RoundedCornerShape(12.dp)
@@ -792,6 +846,7 @@ fun MealItem(meal: Meal, navController: NavHostController){
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp),
+
             verticalAlignment = Alignment.CenterVertically
         ) {
             AsyncImage(
@@ -802,6 +857,7 @@ fun MealItem(meal: Meal, navController: NavHostController){
                     .clip(RoundedCornerShape(12.dp))
             )
             Spacer(modifier = Modifier.width(12.dp))
+
             Column(
                 modifier = Modifier.weight(1f)
             ) {
@@ -812,6 +868,8 @@ fun MealItem(meal: Meal, navController: NavHostController){
                     color = TestoPrincipale
                 )
             }
+            Spacer(modifier = Modifier.width(10.dp))
+
             Button(
                 onClick = { navController.navigate("ricetta/${meal.idMeal}") },
                 colors = ButtonDefaults.buttonColors(containerColor = Verde),
